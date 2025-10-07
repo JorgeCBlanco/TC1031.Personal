@@ -4,6 +4,7 @@ Simulacion de streaming de con Buffer Controlado
   Autores: Jorge Cardenas Blanco, Juan Carlos Arevalo Gomez, Juan Pablo Hernandez Lopez, Luis Fernando Kunze
   Fecha: 6 Octubre 2025
   Materia: Estructura de Datos
+  Enlace al video de Explicacion: https://youtu.be/OqPjlKsR_Kg
 */
 
 #include <iostream>   // se usa para imprimir mensajes en consola con cout
