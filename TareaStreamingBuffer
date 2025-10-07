@@ -1,1 +1,136 @@
+/*
+
+Simulacion de streaming de con Buffer Controlado
+  Autores: Jorge Cardenas Blanco, Juan Carlos Arevalo Gomez, Juan Pablo Hernandez Lopez, Luis Fernando Kunze
+  Fecha: 6 Octubre 2025
+  Materia: Estructura de Datos
+*/
+
+#include <iostream>   // se usa para imprimir mensajes en consola con cout
+#include <deque>      // permite usar una cola doble (aqui actua como buffer deslizante)
+#include <cstdlib>    // para funciones como rand() y srand()
+#include <ctime>      // para inicializar la semilla aleatoria segun la hora
+#include <windows.h>  // se usa Sleep() para pausar el programa en milisegundos (windows)
+
+using namespace std;
+
+/*
+Este programa simula un streaming de video usando una ventana deslizante (sliding window)
+La idea es modelar como un sistema real recibe datos por partes (chunks), los guarda temporalmente
+en un buffer, los reproduce y tambien enfrenta posibles caidas de conexion
+El objetivo es entender la logica de control de flujo en tiempo real
+*/
+
+class VideoStreamSimulator {
+private:
+    deque<string> buffer;   // estructura FIFO donde se guardan los fragmentos de video
+    int windowSize;         // tamaño maximo del buffer, representa la ventana deslizante
+    bool isOnline;          // indica si el sistema esta conectado o no
+    int chunkCounter;       // lleva la cuenta de cuantos chunks se han recibido
+
+public:
+    // constructor: define los valores iniciales del simulador
+    explicit VideoStreamSimulator(int size) {
+        windowSize = size;
+        isOnline = true;
+        chunkCounter = 0;
+    }
+
+    // simula la llegada de un nuevo fragmento de datos al buffer
+    void recibirChunk() {
+        if (isOnline) {
+            string nuevoChunk = "Chunk-" + to_string(chunkCounter++);
+
+            // si el buffer ya esta lleno, se elimina el dato mas antiguo (efecto de ventana deslizante)
+            if ((int)buffer.size() >= windowSize)
+                buffer.pop_front();
+
+            // el nuevo fragmento se agrega al final del buffer
+            buffer.push_back(nuevoChunk);
+
+            cout << "[ONLINE] Recibido: " << nuevoChunk
+                 << " | Buffer: " << buffer.size()
+                 << "/" << windowSize << endl;
+        } else {
+            cout << "[OFFLINE] Sin conexion, no llegan datos." << endl;
+        }
+    }
+
+    // reproduce los datos almacenados, simulando los frames de video
+    void reproducir() {
+        if (!buffer.empty()) {
+            string frame = buffer.front();
+            buffer.pop_front();
+
+            cout << "[PLAY] Reproduciendo " << frame
+                 << " | Buffer: " << buffer.size()
+                 << "/" << windowSize << endl;
+        } else {
+            // si no hay datos disponibles, se muestra un mensaje de espera
+            cout << "[BUFFERING] El buffer esta vacio..." << endl;
+        }
+    }
+
+    // simula una caida de conexion aleatoria y su posterior recuperacion
+    void simularConexion() {
+        // probabilidad de 10% de que ocurra una caida de red
+        if (rand() % 10 == 0) {
+            isOnline = false;
+            cout << "\n[ALERTA] Conexion perdida. Intentando reconexion..." << endl;
+
+            // la duracion de la caida se define aleatoriamente entre 2 y 4 segundos
+            int tiempoCaida = 2 + rand() % 3;
+            Sleep(tiempoCaida * 1000); // se pausa la ejecucion simulando la espera real
+
+            // al "reconectarse" se vuelve a llenar el buffer antes de continuar
+            isOnline = true;
+            cout << "[RECUPERADO] Conexion restablecida. Reconstruyendo buffer..." << endl;
+
+            while ((int)buffer.size() < windowSize) {
+                recibirChunk();    // se agregan nuevos fragmentos
+                Sleep(300);        // pausa corta entre cada uno (300 ms)
+            }
+
+            cout << "[OK] Buffer reconstruido, reanudando reproduccion.\n" << endl;
+        }
+    }
+
+    // bucle principal que coordina los procesos del simulador
+    void run(int duracionSegundos) {
+        clock_t inicio = clock(); // guarda el tiempo inicial
+
+        while (true) {
+            // se calcula el tiempo total transcurrido
+            double tiempoTranscurrido = (double)(clock() - inicio) / CLOCKS_PER_SEC;
+            if (tiempoTranscurrido >= duracionSegundos)
+                break;
+
+            // ciclo de eventos: revisar conexion, recibir datos y reproducir
+            simularConexion();
+            recibirChunk();
+            reproducir();
+
+            // pausa para simular que el video no avanza instantaneamente (medio segundo)
+            Sleep(500);
+        }
+    }
+};
+
+// punto de entrada del programa
+int main() {
+    srand((unsigned)time(nullptr)); // inicializa la semilla aleatoria basada en la hora del sistema
+
+    cout << "===== Simulacion de Streaming de Video =====" << endl;
+    cout << "Ventana deslizante y control de buffer\n" << endl;
+
+    // se crea un simulador con un buffer de 6 posiciones
+    // esto significa que el sistema solo puede tener 6 chunks almacenados al mismo tiempo
+    VideoStreamSimulator simulador(6);
+
+    // se ejecuta la simulacion durante 20 segundos
+    simulador.run(20);
+
+    cout << "\nSimulacion finalizada correctamente." << endl;
+    return 0;
+}
 
